@@ -8,5 +8,5 @@ Append this to `C:\Program Files\Wireshark\init.lua`
 
     dofile("C:\\Users\\kevin\\Documents\\wireshark-socket.io\\socketio_proto.lua")
 
-Optional: enter `websocket` in the Wirshark filter (and press enter).  
-Optional: customize the column display by adding `SocketIO.msgno` and/or `SocketIO.reply_duration.`  
+Optional: enter `websocket` in the Wireshark filter (and press enter).  
+Optional: customize the column display by adding `SocketIO.msgno` and/or `SocketIO.reply_duration`.  

@@ -1,7 +1,7 @@
 
 
 tcp_stream = Field.new("tcp.stream")
-websocket_payload = Field.new("websocket.payload.text")
+websocket_payload = Field.new("data-text-lines")
 
 socketio_proto = Proto("socketio", "Socket.IO Postdissector")
 type_F = ProtoField.string("SocketIO.type", "Message type")
@@ -23,10 +23,14 @@ end
 function socketio_proto.dissector(buffer, pinfo, tree)
     -- obtain the current values the protocol fields
     local websocket_payload = websocket_payload()
-    if websocket_payload and websocket_payload.value:byte() == string.byte("1") then
+    if not websocket_payload then
+      return
+    end
+    websocket_payload = tostring(websocket_payload.value)
+    if websocket_payload:byte() == string.byte("1") then
       -- connection inited
     end
-    if websocket_payload and websocket_payload.value:byte() == string.byte("4") then
+    if websocket_payload:byte() == string.byte("4") then
       local messages = streams[tcp_stream().value]
       if not messages then
         messages = {}
@@ -38,12 +42,12 @@ function socketio_proto.dissector(buffer, pinfo, tree)
       -- 4: proto message
       --  2: send
       --  3: reply
-      local message_type = message_types[websocket_payload.value:byte(2)]
-      local i,j = websocket_payload.value:sub(3):find("%d*")
-      local msgno = tonumber(websocket_payload.value:sub(i+2, j+2))
+      local message_type = message_types[websocket_payload:byte(2)]
+      local i,j = websocket_payload:sub(3):find("%d*")
+      local msgno = tonumber(websocket_payload:sub(i+2, j+2))
       local extra_info = nil
       if message_type == "send" then
-        messages[msgno] = { msgno = tostring(msgno), rel_ts = pinfo.rel_ts, frameno = tonumber(pinfo.number), websocket_payload = websocket_payload.value:sub(1, 100) }
+        messages[msgno] = { msgno = tostring(msgno), rel_ts = pinfo.rel_ts, frameno = tonumber(pinfo.number), websocket_payload = websocket_payload:sub(1, 100) }
       else
         -- TODO if messages[msgno] == nil (i.e. original packet is not in our capture)
         message_type = message_type .. " to " .. tostring(messages[msgno].msgno)
@@ -55,7 +59,7 @@ function socketio_proto.dissector(buffer, pinfo, tree)
       end
       subtree:add(type_F, message_type)
       subtree:add(msgno_F, tostring(msgno))
-      subtree:add(payload_F, websocket_payload.value:sub(1, 100))
+      subtree:add(payload_F, websocket_payload:sub(1, 100))
       if extra_info ~= nil then
         extra_info()
       end
